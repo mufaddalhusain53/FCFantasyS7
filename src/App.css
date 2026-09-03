@@ -342,112 +342,200 @@ header h2 {
 }
 
 /* =========================================================
-   STICKY SELECTION TOP SECTION
-   Keeps Build Your XI + budget + player count + remaining
-   credits + search/filter visible while players scroll.
+   COMPACT STICKY SELECTION TOP SECTION
    ========================================================= */
 
 .selection-top {
   position: sticky;
   top: 0;
   z-index: 500;
-
   width: 100%;
-  padding-top: 28px;
-  padding-bottom: 12px;
-
+  padding-top: 12px;
+  padding-bottom: 8px;
   background: #080808;
 }
 
+.selection-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.selection-title .eyebrow {
+  margin-bottom: 1px;
+}
+
+.selection-title h2 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1;
+  text-transform: none;
+}
+
+.budget {
+  min-width: 82px;
+  padding: 7px 10px;
+  border-radius: 11px;
+}
+
+.budget b {
+  font-size: 18px;
+}
+
+.budget > span {
+  color: #777;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.budget small {
+  font-size: 8px;
+  margin-top: 1px;
+}
+
+.random-xi-btn {
+  width: auto;
+  min-width: 126px;
+  min-height: 40px;
+  padding: 0 13px;
+  border-radius: 10px;
+  font-size: 12px;
+  letter-spacing: .3px;
+}
+
+/* Player count stays on the left; deadline stays on the right. */
+.selection-status-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.progress {
+  min-height: 42px;
+  margin: 0;
+  padding: 0 13px;
+  border-radius: 11px;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.progress b {
+  font-size: 14px;
+}
+
+.progress span {
+  font-size: 11px;
+}
+
+.progress i {
+  color: #444;
+  font-style: normal;
+  margin: 0 2px;
+}
+
+.deadline-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  min-height: 42px;
+  padding: 0 11px;
+  border-radius: 11px;
+  white-space: nowrap;
+}
+
+.deadline-banner span {
+  font-size: 9px;
+}
+
+.deadline-banner b {
+  font-size: 11px;
+}
+
 /* =========================================================
-   TEAM PICK SUMMARY
-   Shows each real team's logo and how many players
-   have been selected from that team.
+   TEAM PICK SUMMARY — LOGO + COUNT ONLY
    ========================================================= */
+
+.team-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 9px;
+}
 
 .team-picks {
   display: flex;
-  gap: 8px;
-  width: 100%;
-  margin: 0 0 14px;
-  padding: 2px 0 8px;
-
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 6px;
+  margin: 0;
+  padding: 1px 0 4px;
   overflow-x: auto;
   overflow-y: hidden;
-
   scrollbar-width: thin;
   scrollbar-color: #333 transparent;
 }
 
-.team-pick-card {
-  flex: 0 0 92px;
+.selection-preview-btn {
+  flex: 0 0 156px;
+  min-height: 54px;
+  padding: 0 14px;
+  border: 1px solid #f5c542;
+  border-radius: 11px;
+  background: #f5c542;
+  color: #080808;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .25px;
+  cursor: pointer;
+  white-space: nowrap;
+}
 
+.selection-preview-btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.team-pick-card {
+  flex: 0 0 68px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-
-  min-height: 104px;
-
-  padding: 8px 6px 7px;
-
+  justify-content: center;
+  min-height: 64px;
+  padding: 5px 4px;
   background: #111;
   border: 1px solid #292929;
-  border-radius: 13px;
-
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
+  border-radius: 10px;
+  transition: border-color .15s ease, background .15s ease;
 }
 
 .team-pick-logo {
-  width: 48px;
-  height: 48px;
-
+  width: 36px;
+  height: 36px;
   object-fit: contain;
-
   display: block;
-
-  margin-bottom: 5px;
-}
-
-.team-pick-name {
-  width: 100%;
-
-  color: #999;
-
-  font-size: 8px;
-  font-weight: 700;
-  line-height: 1.15;
-
-  text-align: center;
-  text-transform: uppercase;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin: 0 0 3px;
 }
 
 .team-pick-count {
-  margin-top: 4px;
-
+  margin: 0;
   color: #f5c542;
-
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 900;
   line-height: 1;
 }
 
 .team-pick-count span {
   color: #666;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
 }
-
-.team-pick-card:has(.team-pick-count:not(:empty)) {
-  /* visual grouping only */
-}
-
 
 /* =========================================================
    PLAYER LIST SECTION
@@ -516,7 +604,7 @@ header h2 {
 
   width: 100%;
 
-  padding-bottom: 100px;
+  padding-bottom: 20px;
 }
 
 
@@ -826,53 +914,6 @@ header h2 {
   color: #f5c542;
 
   text-align: right;
-}
-
-
-/* =========================================================
-   BOTTOM SELECTION BAR
-   ========================================================= */
-
-.bottom {
-  position: fixed;
-
-  left: 50%;
-
-  bottom: 0;
-
-  transform: translateX(-50%);
-
-  width: min(900px, 100%);
-
-  min-height: 76px;
-
-  padding: 12px 20px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: space-between;
-
-  background: rgba(10, 10, 10, 0.97);
-
-  border-top: 1px solid #292929;
-
-  backdrop-filter: blur(10px);
-
-  z-index: 1000;
-}
-
-.bottom b {
-  color: #fff;
-
-  font-size: 16px;
-}
-
-.bottom button {
-  min-width: 210px;
-
-  margin: 0;
 }
 
 
@@ -1350,52 +1391,143 @@ header h2 {
 
 
   .tools {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) 120px;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
 
-    gap: 8px;
+  .tools .text,
+  .tools select {
+    height: 42px;
+    font-size: 11px;
   }
 
 
-  /* Mobile team pick summary */
+  /* Compact mobile selection header */
 
-  .team-picks {
-    gap: 7px;
-    margin-bottom: 10px;
-    padding-bottom: 6px;
+  .selection-top {
+    padding-top: 8px;
+    padding-bottom: 5px;
   }
 
-  .team-pick-card {
-    flex-basis: 78px;
-    min-height: 92px;
-    padding: 6px 4px;
-    border-radius: 11px;
+  .selection-header {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 6px;
+    margin-bottom: 7px;
   }
 
-  .team-pick-logo {
-    width: 40px;
-    height: 40px;
-    margin-bottom: 4px;
+  .selection-title .eyebrow {
+    font-size: 8px;
+    letter-spacing: 1.5px;
   }
 
-  .team-pick-name {
-    font-size: 7px;
+  .selection-title h2 {
+    font-size: 19px;
   }
 
-  .team-pick-count {
-    margin-top: 3px;
-    font-size: 14px;
-  }
-
-  .team-pick-count span {
+  .random-xi-btn {
+    min-width: 92px;
+    min-height: 34px;
+    padding: 0 8px;
+    border-radius: 8px;
     font-size: 9px;
   }
 
+  .budget {
+    min-width: 66px;
+    padding: 5px 7px;
+    border-radius: 9px;
+  }
 
-  /* Mobile sticky selection top */
+  .budget b {
+    font-size: 16px;
+  }
 
-  .selection-top {
-    padding-top: 20px;
-    padding-bottom: 8px;
+  .budget > span {
+    font-size: 10px;
+  }
+
+  .budget small {
+    font-size: 7px;
+  }
+
+  .selection-status-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .progress {
+    min-height: 36px;
+    padding: 0 9px;
+    gap: 4px;
+    border-radius: 9px;
+  }
+
+  .progress b {
+    font-size: 12px;
+  }
+
+  .progress span {
+    font-size: 9px;
+  }
+
+  .progress i {
+    margin: 0 1px;
+  }
+
+  .deadline-banner {
+    min-height: 36px;
+    padding: 0 7px;
+    gap: 5px;
+    border-radius: 9px;
+  }
+
+  .deadline-banner span {
+    font-size: 7px;
+  }
+
+  .deadline-banner b {
+    font-size: 8px;
+  }
+
+  .team-preview-row {
+    gap: 5px;
+    margin-bottom: 6px;
+  }
+
+  .team-picks {
+    gap: 5px;
+    padding-bottom: 3px;
+  }
+
+  .selection-preview-btn {
+    flex-basis: 112px;
+    min-height: 54px;
+    padding: 0 8px;
+    border-radius: 9px;
+    font-size: 9px;
+  }
+
+  .team-pick-card {
+    flex-basis: 53px;
+    min-height: 54px;
+    padding: 4px 2px;
+    border-radius: 8px;
+  }
+
+  .team-pick-logo {
+    width: 30px;
+    height: 30px;
+    margin-bottom: 2px;
+  }
+
+  .team-pick-count {
+    font-size: 10px;
+  }
+
+  .team-pick-count span {
+    font-size: 8px;
   }
 
   .player-list-header {
@@ -1480,26 +1612,6 @@ header h2 {
     border-radius: 10px;
 
     font-size: 18px;
-  }
-
-
-  /* Bottom bar */
-
-  .bottom {
-    width: 100%;
-
-    min-height: 68px;
-
-    padding: 10px 12px;
-  }
-
-
-  .bottom button {
-    min-width: 170px;
-
-    padding: 0 15px;
-
-    font-size: 12px;
   }
 
 
@@ -2323,5 +2435,323 @@ button:disabled {
 
   .team-edit-panel button {
     width: 100%;
+  }
+}
+
+/* =========================================================
+   V6 SELECTION HEADER / TOOLBAR LAYOUT
+   - Player count + credits moved beside Random 11
+   - Team logos get their own row
+   - Search, team filter and Preview stay on one row
+   ========================================================= */
+.selection-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.selection-title h2 {
+  font-size: 24px;
+}
+
+.selection-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.random-xi-btn {
+  min-width: 126px;
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.selection-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid #292929;
+  border-radius: 10px;
+  background: #111;
+  white-space: nowrap;
+}
+
+.selection-summary > div {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.selection-summary b {
+  color: #f5c542;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.selection-summary span {
+  color: #999;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.selection-summary > div + div {
+  padding-left: 12px;
+  border-left: 1px solid #303030;
+}
+
+.deadline-banner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 36px;
+  margin: 0 0 7px;
+  padding: 0 11px;
+  border-radius: 10px;
+}
+
+.deadline-banner span {
+  font-size: 9px;
+  letter-spacing: .35px;
+}
+
+.deadline-banner b {
+  font-size: 10px;
+}
+
+.team-picks.team-picks-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  gap: 6px;
+  margin: 0 0 7px;
+  padding: 0 0 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.team-pick-card {
+  flex: 0 0 58px;
+  min-height: 56px;
+  padding: 4px 2px;
+  border-radius: 9px;
+}
+
+.team-pick-logo {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 2px;
+}
+
+.team-pick-count {
+  margin-top: 0;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.team-pick-count span {
+  font-size: 8px;
+}
+
+.tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px 150px;
+  align-items: stretch;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.selection-preview-btn {
+  width: 100%;
+  min-height: 42px;
+  flex: none;
+  border-radius: 9px;
+  font-size: 10px;
+}
+
+@media (max-width: 650px) {
+  .selection-top {
+    padding-top: 7px;
+    padding-bottom: 4px;
+  }
+
+  .selection-header {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+    margin-bottom: 6px;
+  }
+
+  .selection-title .eyebrow {
+    font-size: 8px;
+    letter-spacing: 1.4px;
+    margin-bottom: 0;
+  }
+
+  .selection-title h2 {
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .selection-actions {
+    justify-content: flex-start;
+    width: 100%;
+    gap: 5px;
+  }
+
+  .random-xi-btn {
+    min-width: 92px;
+    min-height: 34px;
+    padding: 0 8px;
+    border-radius: 8px;
+    font-size: 9px;
+  }
+
+  .selection-summary {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 34px;
+    gap: 7px;
+    padding: 0 7px;
+    border-radius: 8px;
+  }
+
+  .selection-summary > div {
+    gap: 3px;
+  }
+
+  .selection-summary b {
+    font-size: 12px;
+  }
+
+  .selection-summary span {
+    font-size: 7px;
+  }
+
+  .selection-summary > div + div {
+    padding-left: 7px;
+  }
+
+  .budget {
+    min-width: 66px;
+    min-height: 34px;
+    padding: 4px 6px;
+    border-radius: 8px;
+  }
+
+  .budget b {
+    font-size: 15px;
+  }
+
+  .budget > span {
+    font-size: 9px;
+  }
+
+  .budget small {
+    font-size: 6px;
+  }
+
+  .deadline-banner {
+    flex-direction: row;
+    align-items: center;
+    min-height: 32px;
+    margin-bottom: 5px;
+    padding: 0 8px;
+    gap: 5px;
+    border-radius: 8px;
+  }
+
+  .deadline-banner span {
+    font-size: 7px;
+  }
+
+  .deadline-banner b {
+    font-size: 8px;
+  }
+
+  .team-picks.team-picks-row {
+    gap: 4px;
+    margin-bottom: 5px;
+    padding-bottom: 2px;
+  }
+
+  .team-pick-card {
+    flex-basis: 50px;
+    min-height: 50px;
+    padding: 3px 1px;
+    border-radius: 7px;
+  }
+
+  .team-pick-logo {
+    width: 28px;
+    height: 28px;
+  }
+
+  .team-pick-count {
+    font-size: 9px;
+  }
+
+  .team-pick-count span {
+    font-size: 7px;
+  }
+
+  .tools {
+    grid-template-columns: minmax(0, 1fr) 82px 104px;
+    gap: 5px;
+    margin-bottom: 6px;
+  }
+
+  .tools .text,
+  .tools select,
+  .selection-preview-btn {
+    height: 40px;
+    min-height: 40px;
+    font-size: 10px;
+    border-radius: 8px;
+  }
+
+  .selection-preview-btn {
+    padding: 0 5px;
+    letter-spacing: 0;
+  }
+}
+
+@media (max-width: 390px) {
+  .selection-title h2 {
+    font-size: 19px;
+  }
+
+  .random-xi-btn {
+    min-width: 86px;
+    font-size: 8px;
+  }
+
+  .selection-summary {
+    gap: 5px;
+    padding: 0 5px;
+  }
+
+  .selection-summary b {
+    font-size: 11px;
+  }
+
+  .selection-summary span {
+    font-size: 6.5px;
+  }
+
+  .budget {
+    min-width: 61px;
+  }
+
+  .tools {
+    grid-template-columns: minmax(0, 1fr) 76px 98px;
+    gap: 4px;
   }
 }

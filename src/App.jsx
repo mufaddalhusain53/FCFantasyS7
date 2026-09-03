@@ -4,6 +4,13 @@ import * as XLSX from "xlsx";
 import "./App.css";
 
 function App() {
+  // Participant session persistence
+  // Keeps the custom mobile + PIN session across refreshes for 30 minutes.
+  const PARTICIPANT_SESSION_KEY = "fc_fantasy_participant_session";
+  const PARTICIPANT_SESSION_DURATION = 30 * 60 * 1000;
+  const ADMIN_SESSION_KEY = "fc_fantasy_admin_session";
+  const ADMIN_SESSION_DURATION = 30 * 60 * 1000;
+
   // =========================================================
   // PLAYER DATA
   // =========================================================
@@ -376,8 +383,69 @@ const formattedDeadline = teamDeadline
     )
   : null;
 
-const logoutParticipant = () => {
-  // Clear participant login/session data
+const saveParticipantSession = ({
+  mobile: sessionMobile,
+  pin: sessionPin,
+  userId,
+  fantasyTeamId,
+  name: sessionName,
+  fantasyName: sessionFantasyName,
+}) => {
+  try {
+    localStorage.setItem(
+      PARTICIPANT_SESSION_KEY,
+      JSON.stringify({
+        mobile: sessionMobile,
+        pin: sessionPin,
+        userId,
+        fantasyTeamId,
+        name: sessionName,
+        fantasyName: sessionFantasyName,
+        expiresAt: Date.now() + PARTICIPANT_SESSION_DURATION,
+      })
+    );
+  } catch (error) {
+    console.warn("Unable to persist participant session:", error);
+  }
+};
+
+const clearParticipantSession = () => {
+  try {
+    localStorage.removeItem(PARTICIPANT_SESSION_KEY);
+  } catch (error) {
+    console.warn("Unable to clear participant session:", error);
+  }
+};
+
+const saveAdminSession = (sessionPin) => {
+  try {
+    localStorage.setItem(
+      ADMIN_SESSION_KEY,
+      JSON.stringify({
+        authenticated: true,
+        pin: sessionPin,
+        expiresAt: Date.now() + ADMIN_SESSION_DURATION,
+      })
+    );
+  } catch (error) {
+    console.warn("Unable to persist admin session:", error);
+  }
+};
+
+const clearAdminSession = () => {
+  try {
+    localStorage.removeItem(ADMIN_SESSION_KEY);
+  } catch (error) {
+    console.warn("Unable to clear admin session:", error);
+  }
+};
+
+const clearAllSessions = () => {
+  clearParticipantSession();
+  clearAdminSession();
+};
+
+const resetParticipantState = () => {
   setMobile("");
   setPin("");
   setConfirmPin("");
@@ -387,21 +455,55 @@ const logoutParticipant = () => {
   setCurrentUserId(null);
   setCurrentFantasyTeamId(null);
 
-  // Clear current fantasy team state
   setSelected([]);
   setCaptain(null);
   setVice(null);
   setSavedTeamPlayers([]);
 
-  // Clear temporary states
   setAuthError("");
   setAuthLoading(false);
   setSavedTeamLoading(false);
+};
 
-  // Return to participant login
+const logoutParticipant = () => {
+  // Explicit participant logout must invalidate every browser-stored
+  // session so a refresh cannot silently restore the old login.
+  clearAllSessions();
+  resetParticipantState();
+  setAdminPin("");
   setScreen("login");
 };
 
+const logoutAdmin = () => {
+  // Explicit admin logout must invalidate both admin and participant
+  // sessions on this browser. This prevents an immediate refresh from
+  // reopening either authenticated area.
+  clearAllSessions();
+  resetParticipantState();
+  setAdminPin("");
+  setScreen("login");
+};
+
+const adminLogin = () => {
+  setAuthError("");
+
+  if (adminPin !== "2503") {
+    alert("Incorrect admin PIN.");
+    return;
+  }
+
+  clearParticipantSession();
+  saveAdminSession(adminPin);
+  setScreen("admin");
+};
+
+// Clear any stale participant session before showing the admin login
+// screen. A participant session is never used as admin authentication.
+const openAdminLogin = () => {
+  resetAuthFields();
+  setAdminPin("");
+  setScreen("admin-login");
+};
 
 // =========================================================
 // SIGN IN
@@ -471,6 +573,16 @@ const signIn = async () => {
     setVice(null);
     setScreen("select");
   }
+
+  // Persist the participant session so a page refresh does not log them out.
+  saveParticipantSession({
+    mobile,
+    pin,
+    userId: data.user_id,
+    fantasyTeamId: data.fantasy_team_id,
+    name: data.name,
+    fantasyName: data.team_name,
+  });
   } catch (error) {
     console.error(
       "Sign in error:",
@@ -575,6 +687,16 @@ const register = async () => {
 
     // New users need to build their XI
     setScreen("select");
+
+    // Persist the participant session so a page refresh does not log them out.
+    saveParticipantSession({
+      mobile,
+      pin,
+      userId: data.user_id,
+      fantasyTeamId: data.fantasy_team_id,
+      name: data.name,
+      fantasyName: data.team_name,
+    });
   } catch (error) {
     console.error(
       "Registration error:",
@@ -686,6 +808,184 @@ const loadMyFantasyTeam = async (
     setSavedTeamLoading(false);
   }
 };
+
+  // =========================================================
+  // RESTORE PARTICIPANT SESSION AFTER PAGE REFRESH
+  // =========================================================
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const restoreParticipantSession = async () => {
+      try {
+        const rawAdminSession = localStorage.getItem(ADMIN_SESSION_KEY);
+        if (rawAdminSession) {
+          try {
+            const adminSession = JSON.parse(rawAdminSession);
+            if (
+              adminSession?.authenticated &&
+              adminSession.pin === "2503" &&
+              Number(adminSession.expiresAt) > Date.now()
+            ) {
+              return;
+            }
+          } catch {
+            clearAdminSession();
+          }
+        }
+
+        const rawSession = localStorage.getItem(
+          PARTICIPANT_SESSION_KEY
+        );
+
+        if (!rawSession) return;
+
+        const session = JSON.parse(rawSession);
+
+        if (
+          !session?.mobile ||
+          !session?.pin ||
+          !session?.fantasyTeamId ||
+          !session?.expiresAt
+        ) {
+          clearParticipantSession();
+          return;
+        }
+
+        if (Date.now() >= Number(session.expiresAt)) {
+          clearParticipantSession();
+          return;
+        }
+
+        setAuthLoading(true);
+
+        const { data, error } = await supabase.rpc(
+          "login_user",
+          {
+            p_mobile: session.mobile.startsWith("+91")
+              ? session.mobile
+              : `+91${session.mobile}`,
+            p_pin: session.pin,
+          }
+        );
+
+        if (error || !data?.success) {
+          clearParticipantSession();
+          return;
+        }
+
+        if (cancelled) return;
+
+        const restoredMobile = session.mobile.startsWith("+91")
+          ? session.mobile.slice(3)
+          : session.mobile;
+
+        setMobile(restoredMobile);
+        setPin(session.pin);
+        setName(data.name);
+        setFantasyName(data.team_name);
+        setCurrentUserId(data.user_id);
+        setCurrentFantasyTeamId(data.fantasy_team_id);
+
+        const hasSavedTeam = await loadMyFantasyTeam(
+          data.fantasy_team_id,
+          restoredMobile,
+          session.pin
+        );
+
+        if (cancelled) return;
+
+        // Refresh the 30-minute window when the participant returns to the app.
+        saveParticipantSession({
+          mobile: restoredMobile,
+          pin: session.pin,
+          userId: data.user_id,
+          fantasyTeamId: data.fantasy_team_id,
+          name: data.name,
+          fantasyName: data.team_name,
+        });
+
+        setScreen(hasSavedTeam ? "dashboard" : "select");
+      } catch (error) {
+        console.error("Session restore error:", error);
+        clearParticipantSession();
+      } finally {
+        if (!cancelled) {
+          setAuthLoading(false);
+        }
+      }
+    };
+
+    restoreParticipantSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // =========================================================
+  // RESTORE ADMIN SESSION AFTER PAGE REFRESH
+  // =========================================================
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const restoreAdminSession = async () => {
+      try {
+        const rawSession = localStorage.getItem(ADMIN_SESSION_KEY);
+
+        if (!rawSession) return;
+
+        const session = JSON.parse(rawSession);
+
+        if (
+          !session?.authenticated ||
+          session.pin !== "2503" ||
+          !session?.expiresAt
+        ) {
+          clearAdminSession();
+          return;
+        }
+
+        if (Date.now() >= Number(session.expiresAt)) {
+          clearAdminSession();
+          return;
+        }
+
+        // Re-validate the admin PIN against the protected admin RPC before
+        // restoring the admin screen. This avoids trusting localStorage alone.
+        setAuthLoading(true);
+
+        const { data, error } = await supabase.rpc(
+          "get_public_leaderboard",
+          { p_admin_pin: session.pin }
+        );
+
+        if (error || !Array.isArray(data)) {
+          clearAdminSession();
+          return;
+        }
+
+        if (cancelled) return;
+
+        clearParticipantSession();
+        setAdminPin(session.pin);
+        saveAdminSession(session.pin);
+        setScreen("admin");
+      } catch (error) {
+        console.error("Admin session restore error:", error);
+        clearAdminSession();
+      } finally {
+        if (!cancelled) setAuthLoading(false);
+      }
+    };
+
+    restoreAdminSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // =========================================================
   // PLAYER SELECTION
@@ -2078,7 +2378,7 @@ const loadMyFantasyTeam = async (
             onChange={(event) => setAdminPin(event.target.value.replace(/\D/g, "").slice(0, 8))}
             placeholder="Enter admin PIN"
           />
-          <button onClick={() => adminPin === "2503" ? setScreen("admin") : alert("Incorrect admin PIN.")}>ENTER ADMIN PANEL</button>
+          <button onClick={adminLogin}>ENTER ADMIN PANEL</button>
           
         </div>
       </div>
@@ -2108,7 +2408,7 @@ const loadMyFantasyTeam = async (
             <h2>Admin Panel</h2>
             <p>Latest Fantasy Points + player rankings + participant corrections.</p>
           </div>
-          <button className="secondary" onClick={() => { setAdminPin(""); setScreen("login"); }}>LOG OUT</button>
+          <button className="secondary" onClick={logoutAdmin}>LOG OUT</button>
         </header>
 
         <div className="admin-top-actions">
@@ -2707,10 +3007,7 @@ const loadMyFantasyTeam = async (
         <button
   type="button"
   className="admin-login-link"
-  onClick={() => {
-    resetAuthFields();
-    setScreen("admin-login");
-  }}
+  onClick={openAdminLogin}
 >
   ADMIN LOGIN
 </button>
@@ -2748,31 +3045,6 @@ if (screen === "register") {
           type="button"
           onClick={() => {
             resetAuthFields();
-            const logoutParticipant = () => {
-              // Clear authentication/session data
-              setMobile("");
-              setPin("");
-              setConfirmPin("");
-              setName("");
-              setFantasyName("");
-
-              setCurrentUserId(null);
-              setCurrentFantasyTeamId(null);
-
-              // Clear current team state
-              setSelected([]);
-              setCaptain(null);
-              setVice(null);
-              setSavedTeamPlayers([]);
-
-              // Clear temporary errors/loading
-              setAuthError("");
-              setAuthLoading(false);
-              setSavedTeamLoading(false);
-
-              // Return to participant login
-              setScreen("login");
-            };
             setScreen("login");
           }}
         >
@@ -2993,87 +3265,67 @@ if (screen === "register") {
 
         <div className="selection-top">
 
-          <header>
+          <header className="selection-header">
 
-            <div>
+            <div className="selection-title">
               <div className="eyebrow">
                 FRIENDSHIP CUP
               </div>
 
-              <h2>
-                Build Your XI
-              </h2>
+              <h2>Build Your XI</h2>
             </div>
 
-            <button
-  type="button"
-  className="random-xi-btn"
-  onClick={generateRandomXI}
->
-  🎲 RANDOM 11
-</button>
+            <div className="selection-actions">
+              <button
+                type="button"
+                className="random-xi-btn"
+                onClick={generateRandomXI}
+              >
+                🎲 RANDOM 11
+              </button>
 
-            <div className="budget">
+              <div className="selection-summary">
+                <div>
+                  <b>{selected.length}/11</b>
+                  <span>Players</span>
+                </div>
+                <div>
+                  <b>{100 - budget}</b>
+                  <span>Credits Remaining</span>
+                </div>
+              </div>
 
-              <b>{budget}</b>/100
-
-              <small>
-                Selection Points
-              </small>
-
+              <div className="budget">
+                <b>{budget}</b><span>/100</span>
+                <small>Selection Points</small>
+              </div>
             </div>
 
           </header>
 
-          <div className="progress">
-
-            <div>
-              <b>
-                {selected.length}/11
-              </b>
-
-              <span>
-                {" "}Players
-              </span>
-            </div>
-
-            <span>
-              {100 - budget} remaining
-            </span>
-
-          </div>
-
           {teamDeadline && (
             <div
               className={`deadline-banner ${
-                isDeadlinePassed
-                  ? "deadline-closed"
-                  : ""
+                isDeadlinePassed ? "deadline-closed" : ""
               }`}
             >
               <span>
                 {isDeadlinePassed
-                  ? "TEAM SUBMISSION CLOSED"
+                  ? "SUBMISSION CLOSED"
                   : "TEAM SUBMISSION DEADLINE"}
               </span>
-
               <b>{formattedDeadline}</b>
             </div>
           )}
 
-          <div className="team-picks" aria-label="Players selected from each team">
+          <div className="team-picks team-picks-row" aria-label="Players selected from each team">
             {Object.entries(teamLogos).map(([team, logo]) => (
-              <div className="team-pick-card" key={team}>
+              <div className="team-pick-card" key={team} title={team}>
                 <img
                   src={logo}
                   alt={`${team} logo`}
                   className="team-pick-logo"
                 />
-
-                <div className="team-pick-name">
-                  {team}
-                </div>
-
                 <div className="team-pick-count">
                   {counts[team] || 0}<span>/3</span>
                 </div>
@@ -3117,6 +3369,34 @@ if (screen === "register") {
               ))}
 
             </select>
+
+            <button
+              type="button"
+              className="selection-preview-btn"
+              disabled={
+                isDeadlinePassed ||
+                (savedTeamPlayers.length === 11 && !teamEditingAllowed)
+              }
+              onClick={() =>
+                isDeadlinePassed
+                  ? alert(
+                      "The Fantasy Team submission deadline has passed."
+                    )
+                  : savedTeamPlayers.length === 11 && !teamEditingAllowed
+                    ? alert(
+                        "Team editing is currently disabled by the admin."
+                      )
+                    : selected.length === 11
+                      ? setScreen("preview")
+                      : alert("Select exactly 11 players.")
+              }
+            >
+              {isDeadlinePassed
+                ? "CLOSED"
+                : savedTeamPlayers.length === 11 && !teamEditingAllowed
+                  ? "EDITING CLOSED"
+                  : "PREVIEW TEAM →"}
+            </button>
 
           </div>
 
@@ -3168,47 +3448,6 @@ if (screen === "register") {
   </div>
 
 </div>
-
-        {/* BOTTOM BAR */}
-
-        <div className="bottom">
-
-          <b>
-            {selected.length}/11
-          </b>
-
-          <button
-            disabled={
-              isDeadlinePassed ||
-              (savedTeamPlayers.length === 11 &&
-                !teamEditingAllowed)
-            }
-            onClick={() =>
-              isDeadlinePassed
-                ? alert(
-                    "The Fantasy Team submission deadline has passed."
-                  )
-                : savedTeamPlayers.length === 11 &&
-                  !teamEditingAllowed
-                  ? alert(
-                      "Team editing is currently disabled by the admin."
-                    )
-                  : selected.length === 11
-                    ? setScreen("preview")
-                    : alert(
-                        "Select exactly 11 players."
-                      )
-            }
-          >
-            {isDeadlinePassed
-              ? "SUBMISSION CLOSED"
-              : savedTeamPlayers.length === 11 &&
-                  !teamEditingAllowed
-                ? "EDITING CLOSED"
-                : "PREVIEW TEAM →"}
-          </button>
-
-        </div>
 
       </div>
     );
@@ -3495,25 +3734,7 @@ if (screen === "register") {
     <button
       type="button"
       className="logout-button"
-      onClick={() => {
-  setMobile("");
-  setPin("");
-  setConfirmPin("");
-  setName("");
-  setFantasyName("");
-
-  setCurrentUserId(null);
-  setCurrentFantasyTeamId(null);
-
-  setSelected([]);
-  setCaptain(null);
-  setVice(null);
-
-  setAuthError("");
-  setAuthLoading(false);
-
-  setScreen("login");
-}}
+      onClick={logoutParticipant}
     >
       LOG OUT
     </button>
